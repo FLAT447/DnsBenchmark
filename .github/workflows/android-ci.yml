@@ -3,14 +3,19 @@ name: Android CI/CD
 on:
   push:
     branches: [main, dev]
+    tags:
+      - 'v*' 
   pull_request:
     branches: [main]
   release:
-    types: [created]
+    types: [created] 
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -44,17 +49,18 @@ jobs:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
         run: |
           mkdir -p app/keystore
-          echo $SIGNING_KEY | base64 -d > app/keystore/key.jks
+          # Исправлено: кавычки для переменной и безопасные флаги декодирования
+          echo "${SIGNING_KEY}" | base64 --decode --ignore-garbage > app/keystore/key.jks
           ./gradlew assembleRelease
 
-      - name: Upload APKs
+      - name: Upload APKs to Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: release-apks
           path: app/build/outputs/apk/release/*.apk
 
       - name: Upload to GitHub Release
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/release/*.apk
