@@ -37,16 +37,15 @@ jobs:
         run: ./gradlew test
 
       - name: Build release APKs
-        run: ./gradlew assembleRelease
-
-      - name: Sign APKs
-        uses: r0adkll/sign-android-release@v1
-        with:
-          releaseDirectory: app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
-          alias: ${{ secrets.KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
+        env:
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+        run: |
+          mkdir -p app/keystore
+          echo $SIGNING_KEY | base64 -d > app/keystore/key.jks
+          ./gradlew assembleRelease
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4
